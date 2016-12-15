@@ -1,65 +1,56 @@
-(function( jQuery ) {
+define( [
+	"./core",
+	"./core/access",
+	"./css"
+], function( jQuery, access ) {
 
-// Create width, height, innerHeight, innerWidth, outerHeight and outerWidth methods
+"use strict";
+
+// Create innerHeight, innerWidth, height, width, outerHeight and outerWidth methods
 jQuery.each( { Height: "height", Width: "width" }, function( name, type ) {
-	var clientProp = "client" + name,
-		scrollProp = "scroll" + name,
-		offsetProp = "offset" + name;
+	jQuery.each( { padding: "inner" + name, content: type, "": "outer" + name },
+		function( defaultExtra, funcName ) {
 
-	// innerHeight and innerWidth
-	jQuery.fn[ "inner" + name ] = function() {
-		var elem = this[0];
-		return elem ?
-			elem.style ?
-			parseFloat( jQuery.css( elem, type, "padding" ) ) :
-			this[ type ]() :
-			null;
-	};
+		// Margin is only for outerHeight, outerWidth
+		jQuery.fn[ funcName ] = function( margin, value ) {
+			var chainable = arguments.length && ( defaultExtra || typeof margin !== "boolean" ),
+				extra = defaultExtra || ( margin === true || value === true ? "margin" : "border" );
 
-	// outerHeight and outerWidth
-	jQuery.fn[ "outer" + name ] = function( margin ) {
-		var elem = this[0];
-		return elem ?
-			elem.style ?
-			parseFloat( jQuery.css( elem, type, margin ? "margin" : "border" ) ) :
-			this[ type ]() :
-			null;
-	};
+			return access( this, function( elem, type, value ) {
+				var doc;
 
-	jQuery.fn[ type ] = function( value ) {
-		return jQuery.access( this, function( elem, type, value ) {
-			var doc, docElemProp, orig, ret;
+				if ( jQuery.isWindow( elem ) ) {
 
-			if ( jQuery.isWindow( elem ) ) {
-				// 3rd condition allows Nokia support, as it supports the docElem prop but not CSS1Compat
-				doc = elem.document;
-				docElemProp = doc.documentElement[ clientProp ];
-				return doc.compatMode === "CSS1Compat" && docElemProp ||
-					doc.body && doc.body[ clientProp ] || docElemProp;
-			}
+					// $( window ).outerWidth/Height return w/h including scrollbars (gh-1729)
+					return funcName.indexOf( "outer" ) === 0 ?
+						elem[ "inner" + name ] :
+						elem.document.documentElement[ "client" + name ];
+				}
 
-			// Get document width or height
-			if ( elem.nodeType === 9 ) {
-				// Either scroll[Width/Height] or offset[Width/Height], whichever is greater
-				doc = elem.documentElement;
-				return Math.max(
-					doc[ clientProp ],
-					elem.body[ scrollProp ], doc[ scrollProp ],
-					elem.body[ offsetProp ], doc[ offsetProp ]
-				);
-			}
+				// Get document width or height
+				if ( elem.nodeType === 9 ) {
+					doc = elem.documentElement;
 
-			// Get width or height on the element
-			if ( value === undefined ) {
-				orig = jQuery.css( elem, type );
-				ret = parseFloat( orig );
-				return jQuery.isNumeric( ret ) ? ret : orig;
-			}
+					// Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+					// whichever is greatest
+					return Math.max(
+						elem.body[ "scroll" + name ], doc[ "scroll" + name ],
+						elem.body[ "offset" + name ], doc[ "offset" + name ],
+						doc[ "client" + name ]
+					);
+				}
 
-			// Set the width or height on the element
-			jQuery( elem ).css( type, value );
-		}, type, value, arguments.length, null );
-	};
-});
+				return value === undefined ?
 
-})( jQuery );
+					// Get width or height on the element, requesting but not forcing parseFloat
+					jQuery.css( elem, type, extra ) :
+
+					// Set width or height on the element
+					jQuery.style( elem, type, value, extra );
+			}, type, chainable ? margin : undefined, chainable );
+		};
+	} );
+} );
+
+return jQuery;
+} );

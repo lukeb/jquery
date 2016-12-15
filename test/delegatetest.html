@@ -2,15 +2,7 @@
 <html>
 <head>
 <title>Event Delegation Tests</title>
-<script>
-var version = location.search && location.search.substr(1);
-if ( version ) {
-	version = "http://code.jquery.com/jquery-"+version+".js";
-} else {
-	version = "../dist/jquery.js";
-}
-document.write('<script src="'+version+'"><'+'/script>');
-</script>
+<script src="jquery.js"></script>
 <style>
 table {
 	border-collapse: collapse;
@@ -31,7 +23,7 @@ th, td {
 </style>
 </head>
 <body>
-<h2>Delegate Tests (<span id="version">BAD FILE IN URL</span>, <span id="fileversion">x</span>)</h2>
+<h2>Delegate Tests (<span id="fileversion">x</span>)</h2>
 
 <table id="changes">
 <thead>
@@ -97,43 +89,42 @@ th, td {
 </table>
 <p>NOTE: Only IE supports propertychange, beforeactivate, beforedeactivate; buttons do not support change events.</p>
 
-        <h2>Submit Tests</h2>
-        <table>
+<h2>Submit Tests</h2>
+<table>
 	<tr>
-	    <td>
-	        Submit each:
-	    </td>
-	    <td>
-	        <form action="" id="text_submit">
-		<input class='test' type='text' value='Key Return To Submit'/>
-	        </form>
-	    </td>
-	    <td>
-	        <form action="" id="password_submit">
-		<input class='test' type='password' value=''/>
-	        </form>
-	    </td>
-	    <td>
-	        <form action="" id="submit_submit">
-		<input type='submit' value="Click Me To Submit" />
-	        </form>
-	    </td>
-	    <td>$(document).bind('submit')</td>
+		<td>
+			Submit each:
+		</td>
+		<td>
+			<form action="" id="text_submit">
+				<input class='test' type='text' value='Key Return To Submit'/>
+			</form>
+		</td>
+		<td>
+			<form action="" id="password_submit">
+				<input class='test' type='password' value=''/>
+			</form>
+		</td>
+		<td>
+			<form action="" id="submit_submit">
+				<input type='submit' value="Click Me To Submit" />
+			</form>
+		</td>
+		<td>$(document).bind('submit')</td>
 	</tr>
 	<tr>
-	        <td>Results:</td>
-	        <td id='textSubmit' class="red">TEXT</td>
-	        <td id='passwordSubmit' class="red">PASSWORD</td>
-	        <td id='submitSubmit' class="red">BUTTON</td>
-	        <td id='boundSubmit' class="red">DOCUMENT</td>
+		<td>Results:</td>
+		<td id='textSubmit' class="red">TEXT</td>
+		<td id='passwordSubmit' class="red">PASSWORD</td>
+		<td id='submitSubmit' class="red">BUTTON</td>
+		<td id='boundSubmit' class="red">DOCUMENT</td>
 	</tr>
-        </table>
+</table>
 
 	<form id="autosub"><input type=submit name=subme /></form>
-	
+
 <script type='text/javascript'>
 
-$("#version").text(version);
 $("#fileversion").text($.fn.jquery);
 
 // Try an auto-submit, it should only fire once
@@ -152,7 +143,7 @@ $(function(){
 });
 
 // Events we want to track in row-order
-var events = "bind-change live-change on-change bind-propertychange live-beforeactivate live-focusin bind-focus live-beforedeactivate live-focusout bind-blur live-click live-keydown".split(" "),
+var events = "bind-change live-change onX-change bind-propertychange live-beforeactivate live-focusin bind-focus live-beforedeactivate live-focusout bind-blur live-click live-keydown".split(" "),
 	counter = 0;
 	blinker = function(event){
 		if ( !counter ) {
@@ -177,11 +168,11 @@ for ( var i=0; i < events.length; i++ ) {
 		api = m[0],
 		type = m[1],
 		$row = $("<tr><th>"+type+" "+api+"</th></tr>");
-	
+
 	$("#changes thead td").each(function(){
 		var id = "#"+this.id,
-			$cell = $('<td></td>');
-		if ( api == "on" ) {
+			$cell = $("<td></td>");
+		if ( api == "onX" ) {
 			$(this).find("input, button, select, textarea").each(function(){
 				this["on"+type] = function(e){ e = $.event.fix(e||event); e.data = $cell; blinker.call(this, e); };
 			});
@@ -193,6 +184,16 @@ for ( var i=0; i < events.length; i++ ) {
 		$row.append($cell);
 	});
 	$("#changes tbody").append($row);
+}
+
+// Ensure that cloned elements get the delegated event magic; this is
+// implementation-specific knowledge but otherwise impossible to test.
+// The beforeactivate event attaches a direct-bound change event.
+// (Only care about the live change for this third select element.)
+var sel1 = $("#select-one select:first-child");
+if ( typeof(sel1[0].fireEvent) !== "undefined" ) {
+	sel1.trigger( "beforeactivate" ).clone().appendTo("#select-one");
+	//alert($("#select-one select").map(function(){ return this._change_attached || "undef"; }).get().join("|"));
 }
 
 jQuery.fn.blink = function(){
